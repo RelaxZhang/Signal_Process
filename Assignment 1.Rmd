@@ -1,0 +1,511 @@
+---
+title: "MAST30034 Assignment 1"
+author: "Chi Zhang"
+date: "25/08/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# This is the link for accessing the overleaf Latex report
+# https://www.overleaf.com/read/qhzsswpgjmqy
+```
+
+```{r}
+# Install extra packages for plotting and reshaping the vectors and matrixs
+install.packages("plot.matrix")
+install.packages("ggplot2")
+install.packages("reshape")
+
+# Import the libraries
+library("reshape")
+library("ggplot2")
+library("plot.matrix")
+library("MASS")
+```
+
+# Question 1.1
+```{r}
+# Generates standardized TCs and normalized TCs sources
+N = 240
+
+TC_1 = rep(c(rep(1, 15), rep(0, 15)), N / 30)
+Norm_TC_1 = TC_1 / sqrt(sum(TC_1^2))
+TC_1 = (TC_1 - mean(TC_1))/sd(TC_1)
+
+TC_2 = c(c(rep(0, 20)), rep(c(rep(1, 20), rep(0, 25)), round((N-20)/45, digits=0))[1:(N-20)])
+Norm_TC_2 = TC_2 / sqrt(sum(TC_2^2))
+TC_2 = (TC_2 - mean(TC_2))/sd(TC_2)
+
+TC_3 = rep(c(rep(1, 25), rep(0, 35)), N / 60)
+Norm_TC_3 = TC_3 / sqrt(sum(TC_3^2))
+TC_3 = (TC_3 - mean(TC_3))/sd(TC_3)
+
+TC_4 = rep(c(rep(1, 15), rep(0, 25)), N / 40)
+Norm_TC_4 = TC_4 / sqrt(sum(TC_4^2))
+TC_4 = (TC_4 - mean(TC_4))/sd(TC_4)
+
+TC_5 = rep(c(rep(1, 20), rep(0, 20)), N / 40)
+Norm_TC_5 = TC_5 / sqrt(sum(TC_5^2))
+TC_5 = (TC_5 - mean(TC_5))/sd(TC_5)
+
+TC_6 = rep(c(rep(1, 25), rep(0, 15)), N / 40)
+Norm_TC_6 = TC_6 / sqrt(sum(TC_6^2))
+TC_6 = (TC_6 - mean(TC_6))/sd(TC_6)
+
+# Generates matrix of TCs for further usage
+TC <- data.frame(cbind(TC_1, TC_2, TC_3, TC_4, TC_5, TC_6))
+
+# Plot subplots for standardized TCs sources
+par(mfrow=c(2,3))
+plot(TC_1, typ = "l")
+plot(TC_2, typ = "l")
+plot(TC_3, typ = "l")
+plot(TC_4, typ = "l")
+plot(TC_5, typ = "l")
+plot(TC_6, typ = "l")
+
+# Plot subplots for normalized TCs sources for comparison between standardization and normalization of TCs
+par(mfrow=c(2,3))
+plot(Norm_TC_1, typ = "l")
+plot(Norm_TC_2, typ = "l")
+plot(Norm_TC_3, typ = "l")
+plot(Norm_TC_4, typ = "l")
+plot(Norm_TC_5, typ = "l")
+plot(Norm_TC_6, typ = "l")
+```
+
+# Question 1.2
+```{r}
+# With standardised dataframe created in Q1.1
+# apply .cor() and plot() to generate correlation matrix and figure
+TC_cor = cor(TC)
+TC_cor
+par(mar = c(4, 4, 4, 4))
+plot(TC_cor)
+# Highly positive correlation between TC_4 & TC_5, TC_4 & TC_6, TC_5 & TC_6 are observed from the CMs and the correlation heatmap
+```
+
+# Question 1.3
+```{r}
+# Create initial array 6 * (21 * 21) with all element as 0
+tmpSM <- array(0, c(6, 21, 21))
+par(mfrow=c(3,2))
+par(mar = c(2, 1.8, 2, 3.5))
+
+# insert ones into selected regions in six different layers and plot subplot
+tmpSM[1, 2:6, 2:6] = 1
+plot(tmpSM[1, , ], main = "SM_1")
+
+tmpSM[2, 2:6, 15:19] = 1
+plot(tmpSM[2, , ], main = "SM_2")
+
+tmpSM[3, 8:13, 2:6] = 1
+plot(tmpSM[3, , ], main = "SM_3")
+
+tmpSM[4, 8:13, 15:19] = 1
+plot(tmpSM[4, , ], main = "SM_4")
+
+tmpSM[5, 15:19, 2:6] = 1
+plot(tmpSM[5, , ], main = "SM_5")
+
+tmpSM[6, 15:19, 15:19] = 1
+plot(tmpSM[6, , ], main = "SM_6")
+
+# Convert into matrix SM with 6 * 441 dimension
+SM <- rbind(as.vector(tmpSM[1, ,]), as.vector(tmpSM[2, ,]), as.vector(tmpSM[3, ,]),
+            as.vector(tmpSM[4, ,]), as.vector(tmpSM[5, ,]), as.vector(tmpSM[6, ,]))
+SM <- data.frame(SM)
+
+# Construct correlation matrix of SM and correlation heatmap for visualization
+SM_cor <- cor(t(SM))
+SM_cor
+par(mfrow = c(1, 1))
+par(mar = c(4, 4, 4, 4))
+plot(SM_cor)
+
+# All 6 vectored SMs are independent from values in the correlation matrix and the visualization from the heatmap
+```
+
+# Question 1.4
+```{r}
+# Generate White Gaussian Noises for TCs and SMs and plot the correlation Heatmap for CMs of TCs and SMs
+par(mfrow=c(1,2))
+par(mar = c(2, 1.8, 2, 3.5))
+
+# Generate noise Matrix with dimension 240 * 6 follows N(0, 0.25)
+Gamma_TC <- matrix(rnorm(240*6, mean = 0, sd = sqrt(0.25)), 240, 6)
+Gamma_TC_cor <- cor(data.frame(Gamma_TC))
+plot(Gamma_TC_cor)
+
+# Generate noise Matrix with dimension 6 * 441 follows N(0, 0.015)
+Gamma_SM <- matrix(rnorm(6*441, mean = 0, sd = sqrt(0.015)), 6, 441)
+Gamma_SM_cor <- cor(data.frame(t(Gamma_SM)))
+plot(Gamma_SM_cor)
+
+# calculate % of data located in 1.96*sigma range
+mean_TC <- mean(as.vector(Gamma_TC))
+mean_SM <- mean(as.vector(Gamma_SM))
+sd_TC <- sd(as.vector(Gamma_TC))
+sd_SM <- sd(as.vector(Gamma_SM))
+
+upper_bound_TC <- mean_TC + 1.96 * sd_TC
+lower_bound_TC <- mean_TC - 1.96 * sd_TC
+upper_bound_SM <- mean_SM + 1.96 * sd_SM
+lower_bound_SM <- mean_SM - 1.96 * sd_SM
+
+count_GTC <- 0
+count_GSM <- 0
+for (i in as.vector(Gamma_TC)){
+  if (i >= lower_bound_TC){
+    if (i <= upper_bound_TC){
+      count_GTC <- count_GTC + 1}}}
+  
+for (i in as.vector(Gamma_SM)){
+  if (i >= lower_bound_SM){
+    if (i <= upper_bound_SM){
+      count_GSM <- count_GSM + 1}}}
+
+percentage_TC_noise <- count_GTC / (6 * 240)
+percentage_SM_noise <- count_GSM / (6 * 441)
+
+percentage_TC_noise
+percentage_SM_noise
+
+# Plot histogram of noise source in TCs
+hist(as.vector(Gamma_TC), freq = FALSE, main = "Temporal Source Noise Histogram", xlab = "Gamma_TC")
+TC_fit_norm_sd <- sqrt(1.96 * 0.25)
+curve(dnorm(x, mean = 0, sd = TC_fit_norm_sd), add = TRUE)
+
+# Plot histogram of noise source in SMs
+hist(as.vector(Gamma_SM), freq = FALSE, main = "Spatial Source Noise Histogram", xlab = "Gamma_SM")
+SM_fit_norm_sd <- sqrt(1.96 * 0.015)
+curve(dnorm(x, mean = 0, sd = SM_fit_norm_sd), add = TRUE)
+
+# Plot correlation heatmap between 441 products of noise and extract partial of them for clear visulization
+par(mfrow=c(1,1))
+Gamma_TC_SM <- Gamma_TC %*% Gamma_SM
+TCSM_cor <- cor(data.frame(Gamma_TC_SM))
+par(mar = c(2, 1.8, 2, 3.5))
+plot(TCSM_cor, border = NA)
+plot(TCSM_cor[1:6, 1:6])
+```
+
+# Question 1.5
+```{r}
+# Generate synthetic dataset X (240 x 441) as X = (TC + Gamma_TC) x (SM + Gamma_SM)
+X <- (as.matrix(TC) + as.matrix(Gamma_TC)) %*% (as.matrix(SM) + as.matrix(Gamma_SM))
+
+# as dimension of TC is 240x6, dimension of Gamma_SM is 6x441, TC x Gamma_SM exists
+# as dimension of Gamma_TC is 240x6, dimension of SM is 6x441, Gamma_TC x SM exists
+
+# Plot ggplot for randomly selected 100 time-series from X
+# Code is cited from https://stackoverflow.com/questions/27998147/ggplot-with-data-frame-columns
+X <- data.frame(X)
+X_100 <- X[sample(nrow(X), 100)]
+X_100_dataframe <- data.frame(timestamp = 1:240, X_100)
+X_100_Structure <- melt(X_100_dataframe, id.vars = "timestamp")
+ggplot(data = X_100_Structure, aes(x = timestamp, y = value, color = variable)) + geom_line()
+
+# Analysis of multicollinearity
+par(mfrow=c(1,1))
+TCGamma_cor <- cor(data.frame((as.matrix(TC) %*% as.matrix(Gamma_SM))))
+par(mar = c(2, 1.8, 2, 3.5))
+plot(TCGamma_cor[1:6, 1:6])
+
+# Plot variance of 441 variables' variance
+par(mfrow=c(1,1))
+var_X <- c(rep(0, length(X)))
+count <- 0
+for (i in 1:length(X)){
+  var_X[i] = var_X[i] + var(X[, i])
+  if (var(X[, i]) >= 0.5){
+    count = count + 1
+  }
+}
+plot_var_X <- data.frame(NX = 1:length(X), var_X)
+plot(plot_var_X$NX, plot_var_X$var_X, xlab = "Variable_X", ylab = "Variance")
+
+# Generate standardized dataset / matrix X for Question 2 
+X <- as.matrix(as.data.frame(scale(X)))
+```
+
+# Question 2.1
+```{r}
+# Generate retrieved SMs and TCs with LSR as A_LSR and D_LSR
+D <- as.matrix(TC)
+A_LSR <- solve(t(D)%*%D)%*%t(D)%*%X
+D_LSR <- X%*%t(A_LSR)
+A_LSR <- abs(solve(t(D)%*%D)%*%t(D)%*%X)
+
+# Plot six retrieved sources A_LSR side-by-side
+par(mfrow = c(3, 4))
+A_LSR_main <- c("Retrieved Spatial Map 1", "Retrieved Spatial Map 2", "Retrieved Spatial Map 3", 
+                "Retrieved Spatial Map 4", "Retrieved Spatial Map 5", "Retrieved Spatial Map 6")
+
+D_LSR_main <- c("Retrieved Time courses 1", "Retrieved Time courses 2", "Retrieved Time courses 3", 
+                "Retrieved Time courses 4", "Retrieved Time courses 5", "Retrieved Time courses 6")
+
+for (i in 1:6){
+  par(mar = c(1.8, 2.8, 2.8, 2.8))
+  A_LSR_X <- A_LSR[i, ]
+  dim(A_LSR_X) <- c(21, 21)
+  D_LSR_X <- D_LSR[, i]
+  plot(A_LSR_X, main = A_LSR_main[i])
+  plot(D_LSR_X, type = "l", main = D_LSR_main[i])
+}
+
+# Plot scatter plot between D_LSR column 3 & Standardized X column 30
+par(mfrow = c(1, 2))
+D_LSR_3 <- D_LSR[, 3]
+X_30 <- X[, 30]
+par(mar = c(5, 4, 1.5, 2))
+plot(D_LSR_3, X_30, main = "D3_X30")
+# Strong linear relation is observed from the plot D3_X30
+
+# Plot scatter plot between D_LSR column 4 & Standardized X column 30
+D_LSR_4 <- D_LSR[, 4]
+X_30 <- X[, 30]
+par(mar = c(5, 4, 1.5, 2))
+plot(D_LSR_4, X_30, main = "D4_X30")
+# no obvious linear relation is observed from the plot D4_X30
+
+# Plot shape pattern plots for 3rd and 4th columns of retrieved SMs and 30th column of synthetic X
+par(mfrow = c(1,3))
+par(mar = c(1.8, 2.8, 2.8, 2.8))
+plot(D_LSR_3, type = "l", main = "DLSR3")
+plot(X_30, type = "l", main = "X_30")
+plot(D_LSR_4, type = "l", main = "DLSR4")
+```
+
+# Question 2.2
+```{r}
+# Set lambda between 0 to 1 (pick lambda = 0.5 with guess and check method)
+# Generate retrieved SMs and TCs with RR as A_RR and D_RR
+lambda <- 0.5
+V <- 441
+Identity <- diag(1, 6, 6)
+RR <- lambda * V * Identity
+A_RR <- (solve(t(D)%*%D + RR)%*%t(D)%*%X)
+D_RR <- X%*%t(A_RR)
+
+# Calculate sum of correlation of D_RR and D_LSR
+Corr_TC_LSR <- 0
+Corr_TC_RR <- 0
+for (i in 1:6){
+  Corr_TC_LSR <- Corr_TC_LSR + abs(cor(D[, i], D_LSR[, i]))
+  Corr_TC_RR <- Corr_TC_RR + abs(cor(D[, i], D_RR[, i]))
+}
+Corr_TC_LSR
+Corr_TC_RR
+
+# Generate A_RR with lambda = 1000
+lambda_1000 <- 1000
+RR_1000 <- lambda_1000 * V * Identity
+A_RR_1000 <- solve(t(D)%*%D + RR_1000)%*%t(D)%*%X
+
+# Plot the values from first columns of A_RR_1000 and A_LSR
+A_RR_1000_1 <- A_RR_1000[1, ]
+A_LSR_1 <- A_LSR[1, ]
+par(mfrow = c(1,2))
+plot(A_RR_1000_1, main = "ARR_1000_1")
+plot(A_LSR_1, main = "ALSR_1")
+```
+
+# Question 2.3
+```{r}
+# Generate retrieved SMs and TCs with LR as A_LR and D_LR
+# 10 realization of X is created for LR process
+x1 <- 21
+x2 <- 21
+nsrcs <- 6
+rho_list <- seq(from = 0, to = 1, by = 0.05)
+TC <- as.matrix(TC)
+SM <- as.matrix(SM)
+step <- 1 / (norm(TC %*% t(TC)) * 1.1)
+
+MSE_AVG <- c(rep(0, 21))
+
+for (i in 1:10){
+  Gamma_TC_random <- matrix(rnorm(240*6, mean = 0, sd = sqrt(0.25)), 240, 6)
+  Gamma_SM_random <- matrix(rnorm(6*441, mean = 0, sd = sqrt(0.015)), 6, 441)
+  X_random <- (TC + Gamma_TC_random) %*% (SM + Gamma_SM_random)
+  X_random <- as.matrix(scale(X_random))
+  
+  MSE_count <- c(rep(0, 21))
+  for (rho in 1:21){
+    thr <- rho_list[rho] * N * step
+    Ao <- matrix(0, nsrcs, 1)
+    A <- matrix (0, nsrcs, 1)
+    Alr <- matrix(0, nsrcs, x1*x2)
+
+    for (k in 1:(x1*x2)){
+      A <- Ao + step * (t(TC) %*% (X_random[,k] - (TC %*% Ao)))
+      A <- (1/(1+thr)) * (sign(A) * pmax(replicate(nsrcs ,0), abs(A) - thr))
+      
+      for (p in 1:10){
+        Ao <- A
+        A <- Ao + step * (t(TC) %*% (X_random[,k] - (TC %*% Ao)))
+        A <- (1/(1+thr)) * (sign(A) * pmax(replicate(nsrcs ,0), abs(A) - thr))
+      }
+      Alr[, k] <- A
+    }
+    Dlr <- X_random %*% t(Alr)
+    MSE_count[rho] <- norm((X_random - Dlr %*% Alr), type = "F")^2 / (N * V)
+  }
+  MSE_AVG <- MSE_AVG + MSE_count
+}
+
+# Calculate the average MSE with 21 rho values in 10 realization of X 
+MSE_AVG <- MSE_AVG/10
+
+# Plot the MSE curve
+par(mfrow = c(1, 1))
+plot(rho_list, MSE_AVG, type = "l")
+
+# Find out the rho value which delivers minimum MSE
+min_MSE = min(MSE_AVG)
+min_MSE_rho = rho_list[match(min_MSE, MSE_AVG)]
+min_MSE
+min_MSE_rho
+```
+
+# Question 2.4
+```{r}
+# Generate retrieved SMs and TCs with RR as A_RR and D_RR and lambda = 0.5
+lambda <- 0.5
+RR <- lambda * V * Identity
+A_RR <- solve(t(D)%*%D + RR)%*%t(D)%*%X
+D_RR <- X%*%t(A_RR)
+
+# Generate retrieved SMs and TCs with LR as A_LR and D_LR and rho = 0.6
+rho <- min_MSE_rho
+thr <- rho * N * step
+Ao <- matrix(0, nsrcs, 1)
+A_new <- matrix (0, nsrcs, 1)
+A_LR <- matrix(0, nsrcs, x1*x2)
+
+for (k in 1:(x1*x2)){
+  A_new <- Ao + step * (t(TC) %*% (X[,k] - (TC %*% Ao)))
+  A_new <- (1/(1+thr)) * (sign(A_new) * pmax(replicate(nsrcs ,0), abs(A_new) - thr))
+  for (i in 1:10){
+    Ao <- A_new
+    A_new <- Ao + step * (t(TC) %*% (X[,k] - (TC %*% Ao)))
+    A_new <- (1/(1+thr)) * (sign(A_new) * pmax(replicate(nsrcs ,0), abs(A_new) - thr))
+  }
+  A_LR[, k] <- A_new
+}
+D_LR <- X%*%t(A_LR)
+
+# Calculate sum of correlation of D_RR and D_LR, A_RR and A_LR
+A <- as.matrix(SM)
+Corr_TC_RR <- 0
+Corr_SM_RR <- 0
+Corr_TC_LR <- 0
+Corr_SM_LR <- 0
+for (i in 1:6){
+  Corr_TC_RR <- Corr_TC_RR + abs(cor(D[, i], D_RR[, i]))
+  Corr_TC_LR <- Corr_TC_LR + abs(cor(D[, i], D_LR[, i]))
+  Corr_SM_RR <- Corr_SM_RR + abs(cor(A[i, ], A_RR[i, ]))
+  Corr_SM_LR <- Corr_SM_LR + abs(cor(A[i, ], A_LR[i, ]))
+}
+Corr_TC_RR
+Corr_SM_RR
+Corr_TC_LR
+Corr_SM_LR
+
+# Plot six retrieved sources side-by-side
+A_RR_main <- c("ARR 1", "ARR 2", "ARR 3", "ARR 4", "ARR 5", "ARR 6")
+D_RR_main <- c("DRR 1", "DRR 2", "DRR 3", "DRR 4", "DRR 5", "DRR 6")
+A_LR_main <- c("ALR 1", "ALR 2", "ALR 3", "ALR 4", "ALR 5", "ALR 6")
+D_LR_main <- c("DLR 1", "DLR 2", "DLR 3", "DLR 4", "DLR 5", "DLR 6")
+
+par(mfrow = c(3, 4))
+for (i in 1:6){
+  par(mar = c(1.8, 2.8, 2.8, 2.8))
+  A_RR_X <- A_RR[i, ]
+  A_LR_X <- A_LR[i, ]
+  dim(A_RR_X) <- c(21, 21)
+  dim(A_LR_X) <- c(21, 21)
+  D_LR_X <- D_LR[, i]
+  D_RR_X <- D_RR[, i]
+  plot(A_RR_X, main = A_RR_main[i])
+  plot(D_RR_X, type = "l", main = D_RR_main[i])
+  plot(A_LR_X, main = A_LR_main[i])
+  plot(D_LR_X, type = "l", main = D_LR_main[i])
+}
+```
+
+```{r}
+# Generate PCs, also known as Z (named as PC_TC) with svd method
+UVM <- svd(D)
+eigen_value <-UVM$d
+PC_TC <- UVM$u
+
+# Plot eigenvalue plots
+par(mar = c(4, 4, 4, 4))
+plot(eigen_value, type = "l", main = "Eigenvalue")
+
+# Plot TCs sources and PCs source for comparison
+par(mar = c(2, 2, 2, 3.8))
+TC_list <- c("TC1", "TC2", "TC3", "TC4", "TC5", "TC6")
+PC_TC_list <- c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6")
+
+par(mfrow=c(3,2))
+for (i in 1:6){
+  plot(D[, i], type = "l", main = TC_list[i])
+  plot(PC_TC[, i], type = "l", main = PC_TC_list[i])
+}
+
+# Generate retrieved SMs and TCs with PCR under LR method with rho = 0.001
+rho <- 0.001
+new_step <- 1 / (norm(PC_TC %*% t(PC_TC)) * 1.1)
+new_thr <- rho * N * new_step
+Ao <- matrix(0, nsrcs, 1)
+A_new <- matrix (0, nsrcs, 1)
+A_PCR <- matrix(0, nsrcs, x1*x2)
+
+for (k in 1:(x1*x2)){
+  A_new <- Ao + new_step * (t(PC_TC) %*% (X[,k] - (PC_TC %*% Ao)))
+  A_new <- (1/(1+new_thr)) * (sign(A_new) * pmax(replicate(nsrcs ,0), abs(A_new) - new_thr))
+  
+  for (i in 1:10){
+    Ao <- A_new
+    A_new <- Ao + new_step * (t(PC_TC) %*% (X[,k] - (PC_TC %*% Ao)))
+    A_new <- (1/(1+new_thr)) * (sign(A_new) * pmax(replicate(nsrcs ,0), abs(A_new) - new_thr))
+  }
+  A_PCR[, k] <- A_new
+  
+}
+D_PCR <- X%*%t(A_PCR)
+
+# Plot subplots of A_PCR and D_PCR
+A_PCR_main <- c("Retrieved SM PCR 1", "Retrieved SM PCR 2", "Retrieved SM PCR 3", 
+                "Retrieved SM PCR 4", "Retrieved SM PCR 5", "Retrieved SM PCR 6")
+
+D_PCR_main <- c("Retrieved TC PCR 1", "Retrieved TC PCR 2", "Retrieved TC PCR 3", 
+                "Retrieved TC PCR 4", "Retrieved TC PCR 5", "Retrieved TC PCR 6")
+
+par(mfrow = c(3, 4))
+for (i in 1:6){
+  par(mar = c(1.8, 2.8, 2.8, 2.8))
+  A_PCR_X <- A_PCR[i, ]
+  dim(A_PCR_X) <- c(21, 21)
+  D_PCR_X <- D_PCR[, i]
+  plot(A_PCR_X, main = A_PCR_main[i])
+  plot(D_PCR_X, type = "l", main = D_PCR_main[i])
+}
+
+# Compute the sum of correlation of D_PCR and A_PCR
+Corr_TC_PCR <- 0
+Corr_SM_PCR <- 0
+for (i in 1:6){
+  Corr_TC_PCR <- Corr_TC_PCR + abs(cor(D[, i], D_PCR[, i]))
+  Corr_SM_PCR <- Corr_SM_PCR + abs(cor(A[i, ], A_PCR[i, ]))
+}
+Corr_TC_PCR
+Corr_SM_PCR
+```
